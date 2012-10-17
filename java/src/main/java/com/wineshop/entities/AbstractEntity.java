@@ -20,42 +20,29 @@
 
 package com.wineshop.entities;
 
-import java.io.Serializable;
 import java.util.UUID;
 
 import javax.persistence.Column;
 import javax.persistence.EntityListeners;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.PrePersist;
 import javax.persistence.Version;
 
 import org.granite.tide.data.DataPublishListener;
+import org.springframework.data.jpa.domain.AbstractPersistable;
 
-/**
- * @author Franck WOLFF
- */
 @MappedSuperclass
 @EntityListeners({AbstractEntity.AbstractEntityListener.class, DataPublishListener.class})
-public abstract class AbstractEntity implements Serializable {
+public abstract class AbstractEntity extends AbstractPersistable<Long> {
 
-	private static final long serialVersionUID = 1L;
-	
-
-	@Id @GeneratedValue
-    private Long id;
-
+    private static final long serialVersionUID = 1L;
+    
     /* "UUID" and "UID" are Oracle reserved keywords -> "ENTITY_UID" */
     @Column(name="ENTITY_UID", unique=true, nullable=false, updatable=false, length=36)
     private String uid;
 
     @Version
     private Integer version;
-
-    public Long getId() {
-        return id;
-    }
 
     public Integer getVersion() {
         return version;
