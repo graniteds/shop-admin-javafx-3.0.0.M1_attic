@@ -21,31 +21,30 @@
 package com.wineshop.client;
 
 import java.net.URL;
-import java.util.List;
 import java.util.ResourceBundle;
 
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
+import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
-import javafx.util.Callback;
 
 import javax.inject.Inject;
 
-import org.granite.client.tide.data.EntityManager.UpdateKind;
+import org.granite.client.tide.collections.javafx.PagedQuery;
+import org.granite.client.tide.collections.javafx.TableViewSort;
 import org.granite.client.tide.server.SimpleTideResponder;
 import org.granite.client.tide.server.TideFaultEvent;
-import org.granite.client.tide.server.TideMergeResponder;
 import org.granite.client.tide.server.TideResultEvent;
-import org.granite.client.tide.spring.TideApplicationEvent;
-import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
 
-import com.wineshop.client.entities.Welcome;
-import com.wineshop.client.services.WelcomeService;
+import com.wineshop.client.entities.Address;
+import com.wineshop.client.entities.Vineyard;
+import com.wineshop.client.services.VineyardRepository;
 
 
 /**
@@ -53,84 +52,125 @@ import com.wineshop.client.services.WelcomeService;
  * @author william
  */
 @Component
-public class Home implements Initializable, ApplicationListener<TideApplicationEvent> {
+public class Home implements Initializable {
 
 	@FXML
-	private TextField fieldHello;
+	private TextField fieldSearch;
 
 	@FXML
-	private ListView<Welcome> listWelcomes;
+	private TableView<Vineyard> tableVineyards;
 	
 	@FXML
-	private Label labelMessage;
+	private Label labelFormVineyard;
+	
+	@FXML
+	private TextField fieldName;
+	
+	@FXML
+	private TextField fieldAddress;
+
+	@FXML
+	private Button buttonDelete;
+
+	@FXML
+	private Button buttonCancel;
+
+	@Inject
+	private PagedQuery<Vineyard, Vineyard> vineyards;
+
+	@FXML
+	private Vineyard vineyard;
 	
 	@Inject
-	private WelcomeService welcomeService;
+	private VineyardRepository vineyardRepository;
 	
 	
 	@SuppressWarnings("unused")
 	@FXML
-	private void hello(ActionEvent event) {
-		welcomeService.hello(fieldHello.getText(), 
-			new SimpleTideResponder<Welcome>() {
+	private void search(ActionEvent event) {
+		vineyards.refresh();
+	}
+	
+	
+	private void select(Vineyard vineyard) {
+		if (vineyard == this.vineyard && this.vineyard != null)
+			return;
+		
+		if (this.vineyard != null) {
+			fieldName.textProperty().unbindBidirectional(this.vineyard.nameProperty());
+			if (this.vineyard.getAddress() != null)
+				fieldAddress.textProperty().unbindBidirectional(this.vineyard.getAddress().addressProperty());
+		}
+		
+		if (vineyard != null)
+			this.vineyard = vineyard;
+		else {
+			this.vineyard = new Vineyard();
+			this.vineyard.setName("");
+			this.vineyard.setAddress(new Address());
+			this.vineyard.getAddress().setAddress("");
+		}
+		
+		fieldName.textProperty().bindBidirectional(this.vineyard.nameProperty());
+		fieldAddress.textProperty().bindBidirectional(this.vineyard.getAddress().addressProperty());
+		
+		labelFormVineyard.setText(vineyard != null ? "Edit vineyard" : "Create vineyard");
+		buttonDelete.setVisible(vineyard != null);
+		buttonCancel.setVisible(vineyard != null);
+	}
+
+	@SuppressWarnings("unused")
+	@FXML
+	private void save(ActionEvent event) {
+		final boolean isNew = vineyard.getId() == null;
+		vineyardRepository.save(vineyard, 
+			new SimpleTideResponder<Vineyard>() {
 				@Override
-				public void result(TideResultEvent<Welcome> tre) {
-					fieldHello.setText("");
-					labelMessage.setVisible(false);
-					labelMessage.setManaged(false);
+				public void result(TideResultEvent<Vineyard> tre) {
+					if (isNew)
+						select(null);
+					else
+						tableVineyards.getSelectionModel().clearSelection();
 				}
 				
 				@Override
 				public void fault(TideFaultEvent tfe) {
-					labelMessage.setText("Error: " + tfe.getFault().getFaultDescription());
-					labelMessage.setVisible(true);
-					labelMessage.setManaged(true);
+					System.out.println("Error: " + tfe.getFault().getFaultDescription());
 				}
 			}
 		);
 	}
-	
-	
-	@Override
-	public void onApplicationEvent(TideApplicationEvent event) {
-		if (event.getType().equals(UpdateKind.PERSIST.eventName(Welcome.class)))
-			listWelcomes.getItems().add((Welcome)event.getArgs()[0]);
+
+	@SuppressWarnings("unused")
+	@FXML
+	private void delete(ActionEvent event) {
+		vineyardRepository.delete(vineyard.getId(), 
+			new SimpleTideResponder<Void>() {
+				@Override
+				public void result(TideResultEvent<Void> tre) {
+					tableVineyards.getSelectionModel().clearSelection();
+				}
+			}
+		);
 	}
 
-
+	@SuppressWarnings("unused")
+	@FXML
+	private void cancel(ActionEvent event) {
+		tableVineyards.getSelectionModel().clearSelection();
+	}
+	
 	@Override
-	public void initialize(URL url, ResourceBundle bundle) {
-		listWelcomes.setCellFactory(new Callback<ListView<Welcome>, ListCell<Welcome>>() {
+	public void initialize(URL url, ResourceBundle rb) {
+		vineyards.getFilter().nameProperty().bindBidirectional(fieldSearch.textProperty());
+		vineyards.setSort(new TableViewSort<Vineyard>(tableVineyards, Vineyard.class));
+
+		select(null);
+		tableVineyards.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<Vineyard>() {
 			@Override
-			public ListCell<Welcome> call(ListView<Welcome> listView) {
-				return new ListCell<Welcome>() {
-					protected void updateItem(Welcome welcome, boolean empty) {
-						Welcome oldWelcome = getItem();
-						if (oldWelcome != null && welcome != oldWelcome)
-							textProperty().unbindBidirectional(oldWelcome.messageProperty());
-						
-						super.updateItem(welcome, empty);
-						
-						if (welcome != null && welcome != oldWelcome)
-							textProperty().bindBidirectional(welcome.messageProperty());
-					}
-				};
-			}
-		});
-		
-		welcomeService.findAll(new TideMergeResponder<List<Welcome>>() {
-			@Override
-			public void result(TideResultEvent<List<Welcome>> event) {
-			}
-			
-			@Override
-			public void fault(TideFaultEvent event) {
-			}
-			
-			@Override
-			public List<Welcome> getMergeResultWith() {
-				return listWelcomes.getItems();
-			}
+			public void changed(ObservableValue<? extends Vineyard> property, Vineyard oldSelection, Vineyard newSelection) {
+				select(newSelection);
+			}			
 		});
 	}
 }

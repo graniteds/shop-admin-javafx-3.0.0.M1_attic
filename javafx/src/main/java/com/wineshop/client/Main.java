@@ -31,8 +31,7 @@ import javafx.stage.Stage;
 import javax.inject.Inject;
 
 import org.granite.client.tide.ContextManager;
-import org.granite.client.tide.data.DataObserver;
-import org.granite.client.tide.data.EntityManager;
+import org.granite.client.tide.collections.javafx.PagedQuery;
 import org.granite.client.tide.data.ValidationExceptionHandler;
 import org.granite.client.tide.javafx.JavaFXPlatform;
 import org.granite.client.tide.javafx.JavaFXServerSessionStatus;
@@ -49,6 +48,9 @@ import org.granite.logging.Logger;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import com.wineshop.client.entities.Vineyard;
+import com.wineshop.client.services.VineyardRepository;
 
 
 /**
@@ -90,11 +92,6 @@ public class Main extends Application {
     		return new Identity(serverSession);
     	}
     	
-    	@Bean(initMethod="start", destroyMethod="stop")
-    	public DataObserver welcomeTopic(ServerSession serverSession, EntityManager entityManager) {
-    		return new DataObserver("welcomeTopic", serverSession, entityManager);
-    	}
-    	
     	@Bean
     	public ExceptionHandler validationExceptionHandler() {
     		return new ValidationExceptionHandler();
@@ -104,6 +101,17 @@ public class Main extends Application {
     	public App init() {
     		return new App();
     	}    	
+    	
+    	@Bean
+    	public PagedQuery<Vineyard, Vineyard> vineyards(ServerSession serverSession) throws Exception {
+    		PagedQuery<Vineyard, Vineyard> vineyards = new PagedQuery<Vineyard, Vineyard>(serverSession);
+    		vineyards.setMethodName("findByFilter");
+    		vineyards.setMaxResults(25);
+    		vineyards.setRemoteComponentClass(VineyardRepository.class);
+    		vineyards.setElementClass(Vineyard.class);
+    		vineyards.setFilterClass(Vineyard.class);
+    		return vineyards;
+    	}
     }
     
     public static class App {
