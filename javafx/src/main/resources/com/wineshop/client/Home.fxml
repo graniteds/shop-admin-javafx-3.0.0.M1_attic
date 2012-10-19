@@ -7,7 +7,7 @@
 <?import javafx.scene.control.cell.*?> 
 <?import javafx.scene.layout.*?>
 
-<BorderPane id="BorderPane" prefHeight="500" prefWidth="700" xmlns:fx="http://javafx.com/fxml" fx:controller="com.wineshop.client.Home">
+<BorderPane id="BorderPane" prefHeight="500" prefWidth="800" xmlns:fx="http://javafx.com/fxml" fx:controller="com.wineshop.client.Home">
     <top>
         <BorderPane id="AppBar" style="-fx-padding: 5px 0px 15px 0px">
             <left>
@@ -56,6 +56,20 @@
                                 
                                 <Label text="Address" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
                                 <TextField fx:id="fieldAddress" GridPane.columnIndex="2" GridPane.rowIndex="2"/>
+                                
+                                <Label text="Wines" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                                <HBox spacing="5" GridPane.columnIndex="2" GridPane.rowIndex="3">
+                                    <children>
+                                        <ListView fx:id="listWines" prefWidth="280" maxHeight="150"/>
+                                        
+                                        <VBox spacing="5">
+                                            <children>
+                                                <Button text="+" onAction="#addWine"/>
+                                                <Button text="-" onAction="#removeWine"/>
+                                            </children>
+                                        </VBox>
+                                    </children>
+                                </HBox>
                             </children>
                         </GridPane>
                         <!-- Button Bar -->
