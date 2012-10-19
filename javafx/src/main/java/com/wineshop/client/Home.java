@@ -51,6 +51,7 @@ import org.granite.client.tide.collections.javafx.PagedQuery;
 import org.granite.client.tide.collections.javafx.TableViewSort;
 import org.granite.client.tide.data.EntityManager;
 import org.granite.client.tide.javafx.JavaFXDataManager;
+import org.granite.client.tide.javafx.spring.Identity;
 import org.granite.client.tide.server.SimpleTideResponder;
 import org.granite.client.tide.server.TideFaultEvent;
 import org.granite.client.tide.server.TideResultEvent;
@@ -116,6 +117,9 @@ public class Home implements Initializable {
 	
 	@Inject
 	private JavaFXDataManager dataManager;
+	
+	@Inject
+	private Identity identity;
 	
 	private FormValidator formValidator = new FormValidator();
 	
@@ -242,6 +246,7 @@ public class Home implements Initializable {
 		});
 		
 		buttonSave.disableProperty().bind(Bindings.not(dataManager.dirtyProperty()));
+		buttonDelete.disableProperty().bind(Bindings.not(identity.ifAllGranted("ROLE_ADMIN")));
 		
 		formVineyard.addEventHandler(ValidationResultEvent.ANY, new EventHandler<ValidationResultEvent>() {
 			@Override
