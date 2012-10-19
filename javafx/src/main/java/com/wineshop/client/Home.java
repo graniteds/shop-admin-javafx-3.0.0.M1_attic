@@ -24,6 +24,7 @@ import java.net.URL;
 import java.util.Calendar;
 import java.util.ResourceBundle;
 
+import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -45,6 +46,8 @@ import javax.inject.Inject;
 
 import org.granite.client.tide.collections.javafx.PagedQuery;
 import org.granite.client.tide.collections.javafx.TableViewSort;
+import org.granite.client.tide.data.EntityManager;
+import org.granite.client.tide.javafx.JavaFXDataManager;
 import org.granite.client.tide.server.SimpleTideResponder;
 import org.granite.client.tide.server.TideFaultEvent;
 import org.granite.client.tide.server.TideResultEvent;
@@ -83,6 +86,9 @@ public class Home implements Initializable {
 	private ListView<Wine> listWines;
 
 	@FXML
+	private Button buttonSave;
+
+	@FXML
 	private Button buttonDelete;
 
 	@FXML
@@ -96,6 +102,12 @@ public class Home implements Initializable {
 	
 	@Inject
 	private VineyardRepository vineyardRepository;
+	
+	@Inject
+	private EntityManager entityManager;
+	
+	@Inject
+	private JavaFXDataManager dataManager;
 	
 	
 	@SuppressWarnings("unused")
@@ -111,8 +123,8 @@ public class Home implements Initializable {
 		
 		if (this.vineyard != null) {
 			fieldName.textProperty().unbindBidirectional(this.vineyard.nameProperty());
-			if (this.vineyard.getAddress() != null)
-				fieldAddress.textProperty().unbindBidirectional(this.vineyard.getAddress().addressProperty());
+			fieldAddress.textProperty().unbindBidirectional(this.vineyard.getAddress().addressProperty());
+			entityManager.resetEntity(this.vineyard);
 		}
 		
 		if (vineyard != null)
@@ -122,6 +134,7 @@ public class Home implements Initializable {
 			this.vineyard.setName("");
 			this.vineyard.setAddress(new Address());
 			this.vineyard.getAddress().setAddress("");
+			entityManager.mergeExternalData(this.vineyard);
 		}
 		
 		fieldName.textProperty().bindBidirectional(this.vineyard.nameProperty());
@@ -210,6 +223,8 @@ public class Home implements Initializable {
 				return new WineListCell();
 			}
 		});
+		
+		buttonSave.disableProperty().bind(Bindings.not(dataManager.dirtyProperty()));
 	}
 	
 	
