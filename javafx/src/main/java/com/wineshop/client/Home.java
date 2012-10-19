@@ -29,8 +29,11 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
@@ -51,6 +54,8 @@ import org.granite.client.tide.javafx.JavaFXDataManager;
 import org.granite.client.tide.server.SimpleTideResponder;
 import org.granite.client.tide.server.TideFaultEvent;
 import org.granite.client.tide.server.TideResultEvent;
+import org.granite.client.validation.javafx.FormValidator;
+import org.granite.client.validation.javafx.ValidationResultEvent;
 import org.springframework.stereotype.Component;
 
 import com.wineshop.client.entities.Address;
@@ -75,6 +80,9 @@ public class Home implements Initializable {
 	
 	@FXML
 	private Label labelFormVineyard;
+	
+	@FXML
+	private Parent formVineyard;
 	
 	@FXML
 	private TextField fieldName;
@@ -109,6 +117,8 @@ public class Home implements Initializable {
 	@Inject
 	private JavaFXDataManager dataManager;
 	
+	private FormValidator formValidator = new FormValidator();
+	
 	
 	@SuppressWarnings("unused")
 	@FXML
@@ -120,6 +130,8 @@ public class Home implements Initializable {
 	private void select(Vineyard vineyard) {
 		if (vineyard == this.vineyard && this.vineyard != null)
 			return;
+		
+		formValidator.setForm(null);
 		
 		if (this.vineyard != null) {
 			fieldName.textProperty().unbindBidirectional(this.vineyard.nameProperty());
@@ -141,6 +153,8 @@ public class Home implements Initializable {
 		fieldAddress.textProperty().bindBidirectional(this.vineyard.getAddress().addressProperty());
 		listWines.setItems(this.vineyard.getWines());
 		
+		formValidator.setForm(formVineyard);
+		
 		labelFormVineyard.setText(vineyard != null ? "Edit vineyard" : "Create vineyard");
 		buttonDelete.setVisible(vineyard != null);
 		buttonCancel.setVisible(vineyard != null);
@@ -149,6 +163,9 @@ public class Home implements Initializable {
 	@SuppressWarnings("unused")
 	@FXML
 	private void save(ActionEvent event) {
+		if (!formValidator.validate(this.vineyard))
+			return;
+		
 		final boolean isNew = vineyard.getId() == null;
 		vineyardRepository.save(vineyard, 
 			new SimpleTideResponder<Vineyard>() {
@@ -225,6 +242,16 @@ public class Home implements Initializable {
 		});
 		
 		buttonSave.disableProperty().bind(Bindings.not(dataManager.dirtyProperty()));
+		
+		formVineyard.addEventHandler(ValidationResultEvent.ANY, new EventHandler<ValidationResultEvent>() {
+			@Override
+			public void handle(ValidationResultEvent event) {
+				if (event.getEventType() == ValidationResultEvent.INVALID)
+					((Node)event.getTarget()).setStyle("-fx-border-color: red");
+				else if (event.getEventType() == ValidationResultEvent.VALID)
+					((Node)event.getTarget()).setStyle("-fx-border-color: null");
+			}
+		});
 	}
 	
 	
